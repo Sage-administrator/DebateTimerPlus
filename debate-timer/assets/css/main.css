@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 font-sans;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  * {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+}
+
+@layer components {
+  .timer-display {
+    font-family: 'Courier New', monospace;
+    @apply text-6xl md:text-8xl font-bold text-center;
+  }
+  
+  .debate-card {
+    @apply bg-white rounded-lg p-6 shadow-lg border border-gray-200;
+  }
+  
+  .stage-indicator {
+    @apply w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all;
+  }
+  
+  .stage-indicator.completed {
+    @apply bg-green-500 text-white;
+  }
+  
+  .stage-indicator.current {
+    @apply bg-blue-500 text-white ring-4 ring-blue-200;
+  }
+  
+  .stage-indicator.pending {
+    @apply bg-gray-300 text-gray-600;
+  }
+  
+  .permission-card {
+    @apply p-3 rounded-lg border transition-all;
+  }
+  
+  .permission-card.active {
+    @apply bg-green-50 border-green-300 text-green-800;
+  }
+  
+  .permission-card.inactive {
+    @apply bg-gray-50 border-gray-300 text-gray-600;
+  }
+}

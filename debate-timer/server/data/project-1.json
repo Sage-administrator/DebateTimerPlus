@@ -1,0 +1,24 @@
+{
+  "id": 1,
+  "name": "计时器项目 #1",
+  "updatedAt": "2025-09-24T15:03:31.767Z",
+  "global": {
+    "title": "示例项目",
+
+    "theme": {
+      "bg": "#0e1111",
+      "positive": "#b32525",
+      "negative": "#0369a1"
+    },
+
+    "labels": {
+      "mode": "two",
+      "positive": "正方",
+      "negative": "反方",
+      "third": ""
+    },
+    "teamPositiveName": "",
+    "teamNegativeName": ""
+  },
+  "stages": []
+}

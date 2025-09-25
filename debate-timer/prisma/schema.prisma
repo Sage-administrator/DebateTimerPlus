@@ -1,0 +1,26 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum StageType {
+  speech
+  question
+  summary
+  special
+  dual-timer
+}
+
+model Stage {
+  id           Int       @id
+  order        Int
+  name         String
+  duration     Int
+  type         StageType
+  allowedRoles Json
+  description  String?
+}
