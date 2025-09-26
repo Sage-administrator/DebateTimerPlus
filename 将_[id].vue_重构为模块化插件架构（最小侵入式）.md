@@ -10,7 +10,7 @@
 
 - 保留全部既有功能与交互（页面外观不变）
 
-- Git 语义化自动提交与稳定标签（已验证）
+- Git 语义化自动提交与稳定标签（已验证，v2025.09.26.1400-stable）
 
 - 基于标签的快速回滚脚本（含 dry-run）
 
@@ -29,7 +29,7 @@
 
 ## Design
 
-Step A 继续推进：已将环节 CRUD 操作从页面改为通过事件总线派发（stage:*），由 DataPlugin 接管；下一步迁移导入/导出为 data:import/data:export 事件，并在页面订阅 stage:expand 与 data:changed 同步 UI。
+Step A 已完成数据与环节逻辑迁移（含导入/导出与 CRUD），页面改为事件驱动；当前进入人工测试阶段，待通过后继续迁移 Actions/Members/Form。
 
 ## Plan
 
@@ -47,9 +47,9 @@ Note:
 
 [ ] step3
 
-[/] step4
+[ ] step4
 
-[/] step5
+[X] step5
 
 [ ] step6
 

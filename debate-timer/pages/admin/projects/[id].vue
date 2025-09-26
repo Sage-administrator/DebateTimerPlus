@@ -1314,51 +1314,30 @@ const uiEditor = ref({
   dualTimerFontSize: 20,
 })
 
-// 深浅色主题
+/** 主题状态由 ActionsPlugin 维护，页面通过 actions:update 同步并仅派发事件 */
 const isDark = ref(false)
-function toggleTheme() { isDark.value = !isDark.value }
+function toggleTheme() { registry.emit({ type: 'theme:toggle' }) }
 
-// 读取/持久化主题
-onMounted(() => {
-  try {
-    const v = localStorage.getItem('adminTheme')
-    if (v === 'dark') isDark.value = true
-    if (v === 'light') isDark.value = false
-  } catch {}
-})
-watch(isDark, v => {
-  try { localStorage.setItem('adminTheme', v ? 'dark' : 'light') } catch {}
+// 订阅 Actions 状态
+bus.on('actions:update', (e: any) => {
+  if (typeof e?.payload?.isDark !== 'undefined') isDark.value = !!e.payload.isDark
+  if (typeof e?.payload?.previewUrl !== 'undefined') previewUrl.value = e.payload.previewUrl
+  if (typeof e?.payload?.iframeKey !== 'undefined') iframeKey.value = e.payload.iframeKey
 })
 
 // 实时预览
 const iframeKey = ref(0)
 const previewUrl = ref<string>('')
+/** 预览：交由 ActionsPlugin 负责，页面仅派发事件与接收状态 */
 onMounted(() => {
-  try {
-    const origin = location.origin || ''
-    previewUrl.value = `${origin}/?projectId=${id}&preview=1`
-  } catch {
-    previewUrl.value = `/?projectId=${id}&preview=1`
-  }
+  // ActionsPlugin.init 会发一次 actions:update 以初始化 previewUrl 与 isDark
 })
-function reloadPreview() { iframeKey.value++ }
+function reloadPreview() { registry.emit({ type: 'preview:reload' }) }
 
 // 预览联动：向 iframe 发送切换环节命令（优先 postMessage，回退键盘事件）
 const previewIframe = ref<HTMLIFrameElement | null>(null)
 function sendPreviewAction(action: 'prev' | 'next') {
-  const iframeEl = previewIframe.value
-  const win = iframeEl?.contentWindow
-  if (!win) return
-  try {
-    // 优先使用 postMessage（预览页若实现消息监听可直接处理）
-    win.postMessage({ source: 'admin', type: 'stage:' + action }, location.origin)
-  } catch {}
-  try {
-    // 回退方案：模拟快捷键（预览页支持 ←/→ 切换）
-    const key = action === 'prev' ? 'ArrowLeft' : 'ArrowRight'
-    const evt = new KeyboardEvent('keydown', { key, bubbles: true })
-    win.dispatchEvent(evt)
-  } catch {}
+  registry.emit({ type: 'preview:action', payload: { action } })
 }
 function previewPrev() { sendPreviewAction('prev') }
 function previewNext() { sendPreviewAction('next') }

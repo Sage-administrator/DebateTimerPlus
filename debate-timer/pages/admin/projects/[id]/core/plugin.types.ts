@@ -11,6 +11,9 @@ export type PluginEvent =
   | { type: "data:error"; payload: { message: string } }
   | { type: "data:export" }
   | { type: "data:import"; payload: { data: any } }
+  | { type: "actions:update"; payload: { isDark?: boolean; iframeKey?: number; previewUrl?: string } }
+  | { type: "preview:reload" }
+  | { type: "preview:action"; payload: { action: "prev" | "next" } }
   | { type: "stage:prev" }
   | { type: "stage:next" }
   | { type: "stage:expand"; payload: { id: number | null } }
