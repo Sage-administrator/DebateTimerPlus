@@ -7,7 +7,11 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "git:auto": "pwsh -File scripts/git/auto-commit.ps1",
+    "git:auto:tag": "pwsh -File scripts/git/auto-commit.ps1 -TagStable",
+    "git:tag": "pwsh -File scripts/git/tag-stable.ps1",
+    "git:rollback": "pwsh -File scripts/git/rollback-to-stable.ps1"
   },
   "dependencies": {
     "@nuxtjs/tailwindcss": "^6.14.0",

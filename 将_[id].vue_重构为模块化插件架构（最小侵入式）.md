@@ -10,13 +10,13 @@
 
 - 保留全部既有功能与交互（页面外观不变）
 
-- Git 语义化自动提交与稳定标签
+- Git 语义化自动提交与稳定标签（已提供纯命令操作）
 
 - 基于标签的快速回滚脚本（含 dry-run）
 
 - CHANGELOG 与 ROLLBACK 文档完善
 
-- pre-commit 钩子：lint + test 守护
+- pre-commit 钩子：lint + test 守护（待定）
 
 ## Tech Stack
 
@@ -24,14 +24,12 @@
   "Web": {
     "arch": "vue",
     "component": "shadcn"
-  },
-  "iOS": "",
-  "Android": ""
+  }
 }
 
 ## Design
 
-在 pages/admin/projects/[id]/ 下新增 core 与 plugins 目录；core 提供 types/registry/bus；index.vue 作为壳组件装配插件。Git 脚本使用 PowerShell（Windows 友好）与简单 Node 脚本可选；版本策略使用 vX.Y.Z-stable 标签；回滚脚本支持 dry-run 与确认提示。文档集中在 docs/versioning。
+暂以纯 Git 命令验证推送与标签；确认无误后创建 core 与 plugins 骨架，保持页面逻辑暂不迁移，先接入标准接口。
 
 ## Plan
 
