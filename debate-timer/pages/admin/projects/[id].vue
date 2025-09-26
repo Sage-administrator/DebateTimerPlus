@@ -1184,12 +1184,61 @@ const uiOpen = ref({
   singleTimer: true,
   dualTimer: true,
 })
-import { onMounted, ref, computed, watch } from 'vue'
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import Draggable from 'vuedraggable'
+import { createEventBus } from './[id]/core/plugin.bus'
+import { createPluginRegistry } from './[id]/core/plugin.registry'
+import type { PluginContext } from './[id]/core/plugin.types'
+import { DataPlugin } from './[id]/plugins/data.plugin'
+import { FormPlugin } from './[id]/plugins/form.plugin'
+import { MembersPlugin } from './[id]/plugins/members.plugin'
+import { ChartsPlugin } from './[id]/plugins/charts.plugin'
+import { ActionsPlugin } from './[id]/plugins/actions.plugin'
+import { LayoutPlugin } from './[id]/plugins/layout.plugin'
 const route = useRoute()
 const id = Number(route.params.id)
 import { useDebateStore } from '~/stores/debate'
 const debateStore = useDebateStore()
+
+// 插件事件总线与注册中心（最小侵入式接入）
+const bus = createEventBus()
+const registry = createPluginRegistry()
+
+// 标准化上下文（逐步补充依赖）
+const pluginCtx: PluginContext = {
+  idParam: id,
+  fetch: $fetch,
+  bus,
+}
+
+// 注册占位插件（不改变现有逻辑）
+registry.register(DataPlugin)
+registry.register(FormPlugin)
+registry.register(MembersPlugin)
+registry.register(ChartsPlugin)
+registry.register(ActionsPlugin)
+registry.register(LayoutPlugin)
+
+// 订阅数据事件：统一同步页面状态（最小侵入）
+bus.on("data:update", (e: any) => {
+  if (typeof e?.payload?.loading !== "undefined") loading.value = !!e.payload.loading
+  if (typeof e?.payload?.saving !== "undefined") saving.value = !!e.payload.saving
+  if (typeof e?.payload?.error !== "undefined") error.value = e.payload.error
+  if (typeof e?.payload?.form !== "undefined") form.value = e.payload.form
+})
+bus.on("data:loaded", (e: any) => {
+  if (e?.payload?.form) form.value = e.payload.form
+})
+bus.on("data:saved", (e: any) => {
+  if (e?.payload?.form) {
+    form.value = e.payload.form
+    alert('已保存并广播')
+    reloadPreview()
+  }
+})
+bus.on("stage:expand", (e: any) => {
+  expandedId.value = e?.payload?.id ?? null
+})
 
 const ALL_ROLES = [
   // 默认权限组：主持人/后台已拥有发言权限，移出选项避免重复设置
@@ -1314,6 +1363,16 @@ function sendPreviewAction(action: 'prev' | 'next') {
 function previewPrev() { sendPreviewAction('prev') }
 function previewNext() { sendPreviewAction('next') }
 
+// 壳组件生命周期：初始化与装载/卸载（不迁移任何现有逻辑）
+onMounted(() => {
+  registry.initAll(pluginCtx)
+  registry.mountAll({ refs: { previewIframe } })
+})
+
+onUnmounted(() => {
+  registry.unmountAll()
+})
+
 // 徽标样式与文案
 function typeLabel(t: StageType) {
   return t === 'special' ? '无计时器'
@@ -1338,106 +1397,44 @@ function typeBadgeClass(t: StageType) {
 }
 
 function moveUp(idx: number) {
-  if (!form.value) return
-  if (idx <= 0) return
-  const arr = form.value.stages
-  const curr = arr[idx]
-  const prev = arr[idx - 1]
-  if (!curr || !prev) return
-  arr[idx - 1] = curr
-  arr[idx] = prev
-  renumber()
+  registry.emit({ type: 'stage:moveUp', payload: { index: idx } })
 }
 function moveDown(idx: number) {
-  if (!form.value) return
-  const arr = form.value.stages
-  if (idx >= arr.length - 1) return
-  const curr = arr[idx]
-  const next = arr[idx + 1]
-  if (!curr || !next) return
-  arr[idx + 1] = curr
-  arr[idx] = next
-  renumber()
+  registry.emit({ type: 'stage:moveDown', payload: { index: idx } })
 }
 function renumber() {
-  if (!form.value) return
-  form.value.stages.forEach((s, i) => { s.order = i + 1 })
+  registry.emit({ type: 'stage:renumber' })
 }
 
 function toggleExpand(id: number) {
-  expandedId.value = expandedId.value === id ? null : id
+  const next = expandedId.value === id ? null : id
+  registry.emit({ type: 'stage:expand', payload: { id: next } })
 }
 
 // 上/下一个环节切换（基于 expandedId）
 function prevStage() {
-  if (!form.value || form.value.stages.length === 0) return
-  const arr = form.value.stages
-  const idx = expandedId.value !== null ? arr.findIndex(s => s.id === expandedId.value) : 0
-  const nextIdx = Math.max(0, idx - 1)
-  const target = arr[nextIdx]
-  if (!target) return
-  expandedId.value = target.id
+  registry.emit({ type: 'stage:prev' })
 }
 function nextStage() {
-  if (!form.value || form.value.stages.length === 0) return
-  const arr = form.value.stages
-  const idx = expandedId.value !== null ? arr.findIndex(s => s.id === expandedId.value) : -1
-  const nextIdx = Math.min(arr.length - 1, idx + 1)
-  const target = arr[nextIdx]
-  if (!target) return
-  expandedId.value = target.id
+  registry.emit({ type: 'stage:next' })
 }
 
 function addStageByType(type: 'special' | 'speech' | 'dual-timer') {
-  if (!form.value) return
-  const newStage = {
-    id: Date.now(),
-    order: form.value.stages.length + 1,
-    name: type === 'special' ? '无计时环节' : type === 'speech' ? '单方发言' : '双计时环节',
-    duration: type === 'special' ? 0 : 180,
-    type: type,
-    allowedRoles: ['评委', '观众'],
-    description: ''
-  }
-  form.value.stages.push(newStage as any)
-  expandedId.value = newStage.id
+  registry.emit({ type: 'stage:addByType', payload: { type } })
 }
 
 function addStageByName(name: string) {
-  if (!form.value) return
-  const newStage = {
-    id: Date.now(),
-    order: form.value.stages.length + 1,
-    name: name,
-    duration: name === '自由辩论' ? 300 : 180,
-    type: name === '自由辩论' ? 'dual-timer' as const : 'speech' as const,
-    allowedRoles: ['评委', '观众'],
-    description: ''
-  }
-  form.value.stages.push(newStage as any)
-  expandedId.value = newStage.id
+  registry.emit({ type: 'stage:addByName', payload: { name } })
 }
 
 function addStage() {
-  if (!form.value) return
-  const maxId = form.value.stages.reduce((m, s) => Math.max(m, s.id), 0)
-  form.value.stages.push({
-    id: maxId + 1, order: form.value.stages.length + 1, name: '新环节', duration: 0, type: 'speech', allowedRoles: [], description: ''
-  })
+  registry.emit({ type: 'stage:add' })
 }
 function removeStage(idx: number) {
-  if (!form.value) return
-  form.value.stages.splice(idx, 1)
-  renumber()
+  registry.emit({ type: 'stage:remove', payload: { index: idx } })
 }
 function duplicateStage(idx: number) {
-  if (!form.value) return
-  const src = form.value.stages[idx]
-  if (!src) return
-  const maxId = form.value.stages.reduce((m, s) => Math.max(m, s.id), 0)
-  const dup = { ...src, id: maxId + 1, name: src.name + '（副本）' }
-  form.value.stages.splice(idx + 1, 0, dup as any)
-  renumber()
+  registry.emit({ type: 'stage:duplicate', payload: { index: idx } })
 }
 
 /** 二级下拉选择器辅助逻辑（最小侵入式，沿用 allowedRoles 字符串列表） */
@@ -1527,23 +1524,7 @@ function selectedChips(s: any): string[] {
 }
 
 function exportJSON() {
-  if (!form.value) return
-  // 最小侵入式：导出时剔除旧字段
-  const g = JSON.parse(JSON.stringify(form.value.global || {}))
-  delete g.positiveTopic
-  delete g.negativeTopic
-  // 导出时移除 theme
-  if (g && typeof g === 'object' && 'theme' in g) {
-    delete (g as any).theme
-  }
-  const payload = { global: g, stages: form.value.stages }
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `project-${id}.json`
-  a.click()
-  URL.revokeObjectURL(url)
+  registry.emit({ type: 'data:export' })
 }
 async function importJSON(e: Event) {
   const input = e.target as HTMLInputElement
@@ -1552,88 +1533,20 @@ async function importJSON(e: Event) {
   const text = await file.text().catch(() => '')
   try {
     const data = JSON.parse(text)
-    if (!form.value) return
-    // 最小侵入式：导入时忽略旧字段
-    if (data.global) {
-      delete data.global?.positiveTopic
-      delete data.global?.negativeTopic
-      // 导入时移除 theme
-      try {
-        if (data.global && typeof data.global === 'object' && 'theme' in data.global) {
-          delete (data.global as any).theme
-        }
-      } catch {}
-      form.value.global = data.global
-    }
-    if (Array.isArray(data.stages)) {
-      form.value.stages = data.stages
-      renumber()
-    }
+    registry.emit({ type: 'data:import', payload: { data } })
     ;(e.target as HTMLInputElement).value = ''
   } catch {
     alert('导入的 JSON 无法解析')
   }
 }
 
-async function load() {
-  loading.value = true
-  error.value = null
-  form.value = null
-  try {
-    const res = await $fetch(`/api/projects/${id}`)
-    if ((res as any)?.success && (res as any).data) {
-      form.value = (res as any).data
-      // 默认初始化 labels，避免未定义导致 v-model 报错
-      try {
-        const g: any = (form.value as any).global || ((form.value as any).global = {})
-        g.labels = g.labels || { mode: 'two', positive: '正方', negative: '反方', third: '' }
-        // 全量移除旧主题字段
-        if (g && typeof g === 'object' && 'theme' in g) delete (g as any).theme
-        // 新增字段初始化（空值即可）：队伍名
-        g.teamPositiveName = typeof g.teamPositiveName === 'string' ? g.teamPositiveName : ''
-        g.teamNegativeName = typeof g.teamNegativeName === 'string' ? g.teamNegativeName : ''
-        // 读取界面编辑配置（若存在），同步到本地编辑器以便展示
-        if (g.ui && typeof g.ui === 'object') {
-          uiEditor.value = { ...uiEditor.value, ...g.ui }
-        }
-      } catch {}
-    } else {
-      error.value = (res as any)?.message || '加载失败'
-    }
-  } catch (e: any) {
-    error.value = e?.message || '加载异常'
-  } finally {
-    loading.value = false
-  }
+function load() {
+  registry.emit({ type: 'data:load' })
 }
 
-async function save() {
+function save() {
   if (!form.value) return
-  saving.value = true
-  try {
-    // 保存时同步剔除主题颜色字段（bg/positive/negative）
-    const payload: any = JSON.parse(JSON.stringify(form.value))
-    try {
-      const g = payload.global
-      if (g && typeof g === 'object' && 'theme' in g) {
-        delete g.theme
-      }
-    } catch {}
-    const res = await $fetch(`/api/projects/${id}`, { method: 'PUT', body: payload })
-    if ((res as any)?.success) {
-      form.value = (res as any).data
-      alert('已保存并广播')
-      // 保存成功后主动刷新预览，确保 iframe 立即显示最新环节
-      reloadPreview()
-    } else {
-      alert('保存失败')
-    }
-  } catch (e) {
-    console.error(e)
-    alert('保存异常')
-  } finally {
-    saving.value = false
-  }
+  registry.emit({ type: 'data:save', payload: { form: form.value } })
 }
 
 watch(uiEditor, (val) => {

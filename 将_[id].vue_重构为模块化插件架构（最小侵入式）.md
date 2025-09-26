@@ -10,7 +10,7 @@
 
 - 保留全部既有功能与交互（页面外观不变）
 
-- Git 语义化自动提交与稳定标签（已提供纯命令操作）
+- Git 语义化自动提交与稳定标签（已验证）
 
 - 基于标签的快速回滚脚本（含 dry-run）
 
@@ -29,7 +29,7 @@
 
 ## Design
 
-暂以纯 Git 命令验证推送与标签；确认无误后创建 core 与 plugins 骨架，保持页面逻辑暂不迁移，先接入标准接口。
+Step A 继续推进：已将环节 CRUD 操作从页面改为通过事件总线派发（stage:*），由 DataPlugin 接管；下一步迁移导入/导出为 data:import/data:export 事件，并在页面订阅 stage:expand 与 data:changed 同步 UI。
 
 ## Plan
 
@@ -47,7 +47,7 @@ Note:
 
 [ ] step3
 
-[ ] step4
+[/] step4
 
 [/] step5
 
