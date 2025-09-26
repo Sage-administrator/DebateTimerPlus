@@ -3,9 +3,6 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "git:auto-commit": "pwsh -File ./scripts/git-auto-commit.ps1",
-    "git:tag-stable": "pwsh -File ./scripts/git-tag-stable.ps1",
-    "git:rollback": "pwsh -File ./scripts/git-rollback.ps1",
     "build": "nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",

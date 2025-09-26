@@ -2,21 +2,21 @@
 
 ## Core Features
 
-- 拆分为单一职责插件，每个文件不超过300行
+- 单一职责插件（每文件 ≤ 300 行）
 
-- 保留全部现有功能与交互
+- 标准化插件接口：id/init/mount/unmount/onEvent
 
-- 插件标准接口：id/init/mount/unmount/onEvent
+- 插件注册中心与事件总线（集中错误与健康检查）
 
-- 插件注册中心与事件总线（集中错误输出）
+- 保留全部既有功能与交互（页面外观不变）
 
-- Git自动提交与稳定版本标签（脚本与文档已就绪）
+- Git 语义化自动提交与稳定标签
 
-- 基于标签的快速回滚方案（脚本与文档已就绪）
+- 基于标签的快速回滚脚本（含 dry-run）
 
-- GitHub 远程连接与环境安装（进行中）
+- CHANGELOG 与 ROLLBACK 文档完善
 
-- 清晰的目录结构与分层
+- pre-commit 钩子：lint + test 守护
 
 ## Tech Stack
 
@@ -24,12 +24,14 @@
   "Web": {
     "arch": "vue",
     "component": "shadcn"
-  }
+  },
+  "iOS": "",
+  "Android": ""
 }
 
 ## Design
 
-使用 winget 安装 Git 并自动配置远程与标签同步；若 winget 不可用，指导手动安装。
+在 pages/admin/projects/[id]/ 下新增 core 与 plugins 目录；core 提供 types/registry/bus；index.vue 作为壳组件装配插件。Git 脚本使用 PowerShell（Windows 友好）与简单 Node 脚本可选；版本策略使用 vX.Y.Z-stable 标签；回滚脚本支持 dry-run 与确认提示。文档集中在 docs/versioning。
 
 ## Plan
 
@@ -43,7 +45,7 @@ Note:
 
 [X] step1
 
-[ ] step2
+[/] step2
 
 [ ] step3
 
