@@ -33,6 +33,9 @@ export type PluginEvent =
   | { type: "members:toggleGlobalAll"; payload: { stageId: number; value: boolean } }
   | { type: "members:toggleAudience"; payload: { stageId: number; value: boolean } }
   | { type: "members:update"; payload: { rolesOpenId?: number | null; rolesActiveSide?: "正方" | "反方" | null } }
+  | { type: "form:uiChanged"; payload: { ui: any } }
+  | { type: "form:editTabChanged"; payload: { tab: "stages" | "ui" } }
+  | { type: "form:update"; payload: { ui?: any; tab?: "stages" | "ui" } }
   | { type: "custom"; payload: Record<string, any> }
 
 export interface EventBus {

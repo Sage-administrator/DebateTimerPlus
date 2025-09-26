@@ -1239,6 +1239,16 @@ bus.on("data:saved", (e: any) => {
 bus.on("stage:expand", (e: any) => {
   expandedId.value = e?.payload?.id ?? null
 })
+// 表单状态同步（由 FormPlugin 广播）
+bus.on("form:update", (e: any) => {
+  if (e?.payload?.ui) {
+    const incoming = e.payload.ui || {}
+    Object.assign(uiEditor.value, incoming)
+  }
+  if (e?.payload?.tab) {
+    editTab.value = e.payload.tab
+  }
+})
 
 const ALL_ROLES = [
   // 默认权限组：主持人/后台已拥有发言权限，移出选项避免重复设置
@@ -1526,6 +1536,8 @@ watch(uiEditor, (val) => {
     g.ui = val
     // 同步到 Pinia store，供展示页与其他组件读取
     debateStore.setUi(val || {})
+    // 广播 UI 编辑器变更（交给 FormPlugin 统一分发）
+    registry.emit({ type: 'form:uiChanged', payload: { ui: val } })
   }
 }, { deep: true })
 
@@ -1536,5 +1548,9 @@ onMounted(() => {
     const initUi = (debateStore.currentUi || {}) as Record<string, any>
     Object.assign(uiEditor.value || {}, initUi || {})
   } catch {}
+})
+// 监听编辑分段切换并广播
+watch(editTab, (tab) => {
+  registry.emit({ type: 'form:editTabChanged', payload: { tab } })
 })
 </script>

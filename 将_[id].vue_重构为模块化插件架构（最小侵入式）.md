@@ -25,7 +25,7 @@
 
 ## Design
 
-ActionsPlugin 扩展主题偏好（system/light/dark），监听 prefers-color-scheme，切换时为 documentElement 设置 theme-dark/theme-light 并注入过渡样式；页面根容器增加过渡与 bg/text 组合，减少黑白交替。
+Members 相关交互由页面派发事件（members:*）交由 MembersPlugin 处理；页面仅订阅 members:update 同步 rolesOpenId 与 rolesActiveSide。
 
 ## Plan
 
