@@ -5,30 +5,97 @@ let refs: Record<string, any> = {}
 let isDarkState = false
 let iframeKey = 0
 let previewUrlCache = ""
+let themePref: "system" | "light" | "dark" = "system"
+let media: MediaQueryList | null = null
+let styleInjected = false
 
-/**
- * 将主题读写与预览交互集中到插件中
- * - 主题：读取/写入 localStorage，并通过 actions:update 同步页面 isDark
- * - 预览：初始化 previewUrl，处理刷新（iframeKey++），向 iframe 发送上一/下一命令
- */
 function emitUpdate(partial: { isDark?: boolean; iframeKey?: number; previewUrl?: string }) {
   if (!ctxRef) return
   ctxRef.bus.emit({ type: "actions:update", payload: partial })
 }
 
+function injectTransitionStyle() {
+  if (styleInjected) return
+  try {
+    const style = document.createElement("style")
+    style.textContent = `
+      .theme-transition *, .theme-transition {
+        transition: color .25s ease, background-color .25s ease, border-color .25s ease;
+      }
+    `
+    document.head.appendChild(style)
+    styleInjected = true
+  } catch {}
+}
+
+function applyThemeClass() {
+  try {
+    const root = document.documentElement
+    root.classList.remove("theme-dark", "theme-light")
+    root.classList.add(isDarkState ? "theme-dark" : "theme-light")
+
+    // 平滑过渡：短暂加上过渡类
+    injectTransitionStyle()
+    root.classList.add("theme-transition")
+    setTimeout(() => root.classList.remove("theme-transition"), 300)
+  } catch {}
+}
+
+function computeSystemDark(): boolean {
+  try {
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+  } catch {
+    return false
+  }
+}
+
+function computeIsDark(): boolean {
+  if (themePref === "system") return computeSystemDark()
+  return themePref === "dark"
+}
+
 function readTheme() {
   try {
-    const v = localStorage.getItem("adminTheme")
-    isDarkState = v === "dark"
+    const pref = localStorage.getItem("adminThemePref")
+    if (pref === "light" || pref === "dark" || pref === "system") {
+      themePref = pref
+    } else {
+      themePref = "system"
+    }
   } catch {}
+  isDarkState = computeIsDark()
+  applyThemeClass()
   emitUpdate({ isDark: isDarkState })
+
+  // 监听系统主题变化（仅在 system 模式）
+  try {
+    media = window.matchMedia("(prefers-color-scheme: dark)")
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", () => {
+        if (themePref === "system") {
+          isDarkState = computeIsDark()
+          applyThemeClass()
+          emitUpdate({ isDark: isDarkState })
+        }
+      })
+    } else if (typeof (media as any).addListener === "function") {
+      ;(media as any).addListener(() => {
+        if (themePref === "system") {
+          isDarkState = computeIsDark()
+          applyThemeClass()
+          emitUpdate({ isDark: isDarkState })
+        }
+      })
+    }
+  } catch {}
 }
 
 function toggleTheme() {
-  isDarkState = !isDarkState
-  try {
-    localStorage.setItem("adminTheme", isDarkState ? "dark" : "light")
-  } catch {}
+  // 切换顺序：light -> dark -> system -> light ...
+  themePref = themePref === "light" ? "dark" : themePref === "dark" ? "system" : "light"
+  try { localStorage.setItem("adminThemePref", themePref) } catch {}
+  isDarkState = computeIsDark()
+  applyThemeClass()
   emitUpdate({ isDark: isDarkState })
 }
 

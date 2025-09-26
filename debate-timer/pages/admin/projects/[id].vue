@@ -1,5 +1,5 @@
 <template>
-  <div :class="[isDark ? 'text-white' : 'text-gray-900']" class="p-4 min-h-screen">
+  <div :class="[isDark ? 'text-white bg-[#0b0f14]' : 'text-gray-900 bg-white']" class="p-4 min-h-screen transition-colors duration-300">
     <div class="flex items-center justify-between mb-4">
       <div>
         <h2 class="text-xl font-bold tracking-wide">编辑项目 #{{ id }}</h2>

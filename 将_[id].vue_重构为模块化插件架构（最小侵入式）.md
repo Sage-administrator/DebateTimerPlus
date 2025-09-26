@@ -6,17 +6,13 @@
 
 - 标准化插件接口：id/init/mount/unmount/onEvent
 
-- 插件注册中心与事件总线（集中错误与健康检查）
+- 事件总线 + 注册中心
 
-- 保留全部既有功能与交互（页面外观不变）
+- 原功能与交互保持
 
-- Git 语义化自动提交与稳定标签（已验证，v2025.09.26.1400-stable）
+- Git 语义化提交与稳定标签（v2025.09.26.1403-stable）
 
-- 基于标签的快速回滚脚本（含 dry-run）
-
-- CHANGELOG 与 ROLLBACK 文档完善
-
-- pre-commit 钩子：lint + test 守护（待定）
+- 标签化快速回滚脚本与文档
 
 ## Tech Stack
 
@@ -29,7 +25,7 @@
 
 ## Design
 
-Step A 已完成数据与环节逻辑迁移（含导入/导出与 CRUD），页面改为事件驱动；当前进入人工测试阶段，待通过后继续迁移 Actions/Members/Form。
+DataPlugin 已接管数据加载/保存/导入导出与环节 CRUD；ActionsPlugin 已接管主题与预览（actions:update/preview:* 事件）。页面仅派发/订阅事件，最小侵入。
 
 ## Plan
 
@@ -47,7 +43,7 @@ Note:
 
 [ ] step3
 
-[ ] step4
+[/] step4
 
 [X] step5
 
