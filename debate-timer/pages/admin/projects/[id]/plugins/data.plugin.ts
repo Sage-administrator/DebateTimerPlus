@@ -2,6 +2,7 @@ import type { Plugin, PluginContext, PluginEvent } from "../core/plugin.types"
 
 let ctxRef: PluginContext | null = null
 let currentForm: any = null
+let lastExpandedId: number | null = null
 
 function ensureForm(): any | null {
   return currentForm
@@ -99,18 +100,40 @@ function doExport() {
 function doImport(data: any) {
   if (!currentForm) return
   try {
-    if (data.global) {
-      delete data.global?.positiveTopic
-      delete data.global?.negativeTopic
+    // 处理 global 并移除不需要的字段
+    if (data.global && typeof data.global === "object") {
       try {
-        if (data.global && typeof data.global === "object" && "theme" in data.global) {
-          delete (data.global as any).theme
-        }
+        delete (data.global as any).positiveTopic
+        delete (data.global as any).negativeTopic
+        if ("theme" in (data.global as any)) delete (data.global as any).theme
       } catch {}
       currentForm.global = data.global
     }
+    // 处理 stages：校验与类型纠正
     if (Array.isArray(data.stages)) {
-      currentForm.stages = data.stages
+      const sanitized = (data.stages as any[]).map((s) => {
+        const out: any = { ...s }
+        // id 数字化
+        out.id = Number(out.id)
+        if (!isFinite(out.id)) out.id = Date.now()
+        // 类型与名称默认值
+        out.type = out.type === "dual-timer" || out.type === "speech" || out.type === "special" ? out.type : "speech"
+        out.name = typeof out.name === "string" ? out.name : "新环节"
+        // 时长数字化（双计时合并字段保留）
+        out.duration = Number(out.duration ?? 0)
+        if (!isFinite(out.duration)) out.duration = 0
+        out.positiveDuration = Number((out as any).positiveDuration ?? out.duration)
+        if (!isFinite(out.positiveDuration)) out.positiveDuration = out.duration
+        out.negativeDuration = Number((out as any).negativeDuration ?? out.duration)
+        if (!isFinite(out.negativeDuration)) out.negativeDuration = out.duration
+        // allowedRoles 归一化为字符串数组
+        const roles = Array.isArray(out.allowedRoles) ? out.allowedRoles : []
+        out.allowedRoles = roles.filter((r: any) => typeof r === "string")
+        // 描述
+        out.description = typeof out.description === "string" ? out.description : ""
+        return out
+      }).filter((x) => typeof x.id === "number" && isFinite(x.id))
+      currentForm.stages = sanitized
       renumber()
     }
     emitUpdate({ form: currentForm })
@@ -174,6 +197,8 @@ function removeStage(index: number) {
   currentForm.stages.splice(index, 1)
   renumber()
   emitUpdate({ form: currentForm })
+  // 删除后关闭详情，避免悬挂展开
+  if (ctxRef) ctxRef.bus.emit({ type: "stage:expand", payload: { id: null } })
 }
 
 function duplicateStage(index: number) {
@@ -218,11 +243,17 @@ function expandPrev() {
   if (!currentForm) return
   const arr = currentForm.stages || []
   if (arr.length === 0) {
-    if (ctxRef) ctxRef.bus.emit({ type: "stage:expand", payload: { id: null } })
+    ctxRef?.bus.emit({ type: "stage:expand", payload: { id: null } })
     return
   }
-  // 由页面维护 expandedId，DataPlugin 仅广播下一目标；页面订阅后更新
-  // 此处让页面根据当前 expandedId 决定，不直接读取页面状态，因此退化策略：选第一个
+  // 基于最近展开的环节，计算上一个
+  if (lastExpandedId != null) {
+    const idx = arr.findIndex((s: any) => Number(s.id) === Number(lastExpandedId))
+    const prev = idx > 0 ? arr[idx - 1] : arr[0]
+    ctxRef?.bus.emit({ type: "stage:expand", payload: { id: prev?.id ?? arr[0].id } })
+    return
+  }
+  // 无记忆则选择第一个
   ctxRef?.bus.emit({ type: "stage:expand", payload: { id: arr[0].id } })
 }
 
@@ -230,10 +261,16 @@ function expandNext() {
   if (!currentForm) return
   const arr = currentForm.stages || []
   if (arr.length === 0) {
-    if (ctxRef) ctxRef.bus.emit({ type: "stage:expand", payload: { id: null } })
+    ctxRef?.bus.emit({ type: "stage:expand", payload: { id: null } })
     return
   }
-  // 退化策略：选最后一个
+  if (lastExpandedId != null) {
+    const idx = arr.findIndex((s: any) => Number(s.id) === Number(lastExpandedId))
+    const next = idx >= 0 && idx < arr.length - 1 ? arr[idx + 1] : arr[arr.length - 1]
+    ctxRef?.bus.emit({ type: "stage:expand", payload: { id: next?.id ?? arr[arr.length - 1].id } })
+    return
+  }
+  // 无记忆则选择最后一个
   ctxRef?.bus.emit({ type: "stage:expand", payload: { id: arr[arr.length - 1].id } })
 }
 
@@ -258,6 +295,10 @@ export const DataPlugin: Plugin = {
     if (e.type === "stage:moveDown") moveDown((e as any).payload?.index)
     if (e.type === "stage:prev") expandPrev()
     if (e.type === "stage:next") expandNext()
+    if (e.type === "stage:expand") {
+      // 记忆最近展开的环节用于 prev/next 计算
+      lastExpandedId = (e as any).payload?.id ?? null
+    }
     if (e.type === "stage:renumber") {
       renumber()
       emitUpdate({ form: currentForm })

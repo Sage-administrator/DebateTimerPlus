@@ -2,19 +2,13 @@
 
 ## Core Features
 
-- 单一职责插件（每文件 ≤ 300 行）
+- Data 插件增强：记忆 lastExpandedId，精准上一/下一环节
 
-- 标准化插件接口：id/init/mount/unmount/onEvent
+- 导入校验与类型纠正（id/duration/roles）
 
-- 事件总线 + 注册中心
+- 删除后主动关闭详情，避免悬挂展开
 
-- 原功能与交互保持
-
-- Form 子系统事件化（uiChanged/editTabChanged + form:update）
-
-- Git 稳定标签迭代
-
-- 旧数据兼容：stage.id 字符串与数字统一处理（页面层 Number(...) 修复）
+- 稳定标签 v2025.09.26.2-stable（待用户确认）
 
 ## Tech Stack
 
@@ -27,7 +21,7 @@
 
 ## Design
 
-页面作为壳组件，仅通过事件总线与注册中心装配插件；此次修复通过 stop 点击与本地更新 expandedId 以及关闭成员弹层，避免拖拽和遮罩拦截。
+保持最小侵入式：仅增强 DataPlugin 内部逻辑与事件响应，壳组件与其他插件无需改动。
 
 ## Plan
 
@@ -49,6 +43,6 @@ Note:
 
 [X] step5
 
-[ ] step6
+[X] step6
 
 [ ] step7

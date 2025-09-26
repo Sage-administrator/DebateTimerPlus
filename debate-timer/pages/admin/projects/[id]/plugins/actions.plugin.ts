@@ -7,6 +7,7 @@ let iframeKey = 0
 let previewUrlCache = ""
 let themePref: "system" | "light" | "dark" = "system"
 let media: MediaQueryList | null = null
+let mediaHandler: ((ev?: any) => void) | null = null
 let styleInjected = false
 
 function emitUpdate(partial: { isDark?: boolean; iframeKey?: number; previewUrl?: string }) {
@@ -70,22 +71,17 @@ function readTheme() {
   // 监听系统主题变化（仅在 system 模式）
   try {
     media = window.matchMedia("(prefers-color-scheme: dark)")
+    mediaHandler = () => {
+      if (themePref === "system") {
+        isDarkState = computeIsDark()
+        applyThemeClass()
+        emitUpdate({ isDark: isDarkState })
+      }
+    }
     if (typeof media.addEventListener === "function") {
-      media.addEventListener("change", () => {
-        if (themePref === "system") {
-          isDarkState = computeIsDark()
-          applyThemeClass()
-          emitUpdate({ isDark: isDarkState })
-        }
-      })
+      media.addEventListener("change", mediaHandler as any)
     } else if (typeof (media as any).addListener === "function") {
-      ;(media as any).addListener(() => {
-        if (themePref === "system") {
-          isDarkState = computeIsDark()
-          applyThemeClass()
-          emitUpdate({ isDark: isDarkState })
-        }
-      })
+      ;(media as any).addListener(mediaHandler as any)
     }
   } catch {}
 }
@@ -110,6 +106,11 @@ function initPreviewUrl() {
 }
 
 function reloadPreview() {
+  const now = Date.now()
+  if ((reloadPreview as any)._last && now - (reloadPreview as any)._last < 300) {
+    return
+  }
+  ;(reloadPreview as any)._last = now
   iframeKey++
   emitUpdate({ iframeKey })
 }
@@ -141,6 +142,17 @@ export const ActionsPlugin: Plugin = {
   },
   unmount() {
     refs = {}
+    try {
+      if (media && mediaHandler) {
+        if (typeof media.removeEventListener === "function") {
+          media.removeEventListener("change", mediaHandler as any)
+        } else if (typeof (media as any).removeListener === "function") {
+          ;(media as any).removeListener(mediaHandler as any)
+        }
+      }
+    } catch {}
+    media = null
+    mediaHandler = null
   },
   onEvent(e: PluginEvent) {
     if (e.type === "theme:toggle") toggleTheme()

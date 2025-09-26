@@ -1,24 +1,33 @@
-# 快速回滚指南
+# 快速回滚指南（基于稳定标签）
 
-当任一插件发布后出现异常，请按以下步骤回退到最近稳定版本：
+当插件或页面出现异常，可回退到最近的稳定标签版本。默认使用 dry-run 安全模式，需显式确认后才执行。
 
-1. 确认最近稳定标签
-   git tag --list "*-stable" | sort
+## 一、查找稳定标签
+```sh
+git tag --list "*-stable"
+git show v2025.09.26.1-stable
+```
 
-2. Dry Run 预演（强烈推荐）
-   pwsh -File scripts/git/rollback-to-stable.ps1 -DryRun
+## 二、推荐使用脚本（PowerShell）
+脚本位置：`scripts/git/rollback-to-stable.ps1`
 
-3. 执行回滚
-   pwsh -File scripts/git/rollback-to-stable.ps1 -Tag vX.Y.Z-stable
+- 查看拟执行步骤（默认 dry-run）
+```powershell
+pwsh scripts/git/rollback-to-stable.ps1 -Tag v2025.09.26.1-stable
+# 或不指定 Tag 时自动选择最新稳定标签
+pwsh scripts/git/rollback-to-stable.ps1
+```
 
-4. 验证
-   - 运行本地构建/测试
-   - 页面核心功能（数据加载、表单提交、成员管理、统计图表、项目操作）恢复正常
+- 执行真实回滚（慎用）
+```powershell
+pwsh scripts/git/rollback-to-stable.ps1 -Tag v2025.09.26.1-stable -DryRun:$false
+```
 
-5. 记录变更
-   - 在 CHANGELOG.md 标注本次回滚及原因
-   - 创建修复分支，修复后再次通过 tag-stable 打标签
+说明：
+- 若工作区存在未提交修改，真实回滚会被阻止（需自行提交或丢弃后重试）
+- 真实回滚使用 `git reset --hard` 指向稳定标签对应的提交
+- 回滚后如需推送到远程，请自行确认分支策略（例如强推会影响其他协作者）
 
-注意：
-- 回滚使用 reset --hard + push --force，请确保你理解其影响并沟通团队成员。
-- 若需要仅回滚单插件，请使用分支级修复而非全仓库回滚。
+## 三、常见问题
+- 提示未配置远程：请先 `git remote -v` 检查并配置远程，然后再执行推送或回滚相关操作
+- 找不到标签：确认标签名是否正确，或先运行 `scripts/git/tag-stable.ps1` 创建标签
