@@ -989,7 +989,7 @@
              : 'border border-gray-300 bg-white hover:border-blue-400 hover:shadow-blue-200/40'
     ]"
     class="rounded-r-lg rounded-l-none p-3 hover:shadow-lg transition cursor-pointer flex-1 flex items-center h-14"
-    @click="toggleExpand(s.id)"
+    @click.stop="toggleExpand(s.id)"
   >
                   <div class="flex items-center justify-between w-full">
                     <div class="flex items-center gap-3 flex-1">
@@ -1023,7 +1023,7 @@
               </div>
               
               <!-- 展开的详情区域 - 移到整行下方 -->
-              <div v-show="expandedId === s.id" :class="[
+              <div v-show="expandedId === Number(s.id)" :class="[
                 isDark ? 'bg-gray-800/50 border border-gray-700' : 'bg-gray-50 border border-gray-200'
               ]" class="mt-2 p-4 rounded-lg" @click.stop>
                 <div class="grid grid-cols-12 gap-2">
@@ -1038,7 +1038,7 @@
                     <div
                       :class="isDark ? 'bg-gray-800 text-gray-100 border border-gray-600' : 'bg-white text-gray-900 border border-gray-300'"
                       class="rounded-md px-2 py-1 text-sm flex items-center justify-between cursor-pointer select-none"
-                      @click="rolesOpenId===s.id ? closeRoles() : openRoles(s.id, rolesActiveSide || '正方')"
+                      @click="rolesOpenId===Number(s.id) ? closeRoles() : openRoles(Number(s.id), rolesActiveSide || '正方')"
                     >
                       <div class="flex flex-wrap gap-1">
                         <span v-for="chip in selectedChips(s)" :key="chip" class="px-2 py-0.5 rounded bg-green-100 text-green-700 border border-green-300 text-xs" :class="isDark ? 'bg-green-900/20 text-green-300 border-green-600' : ''">
@@ -1051,8 +1051,8 @@
                       </svg>
                     </div>
                     <!-- 弹层：两列 -->
-                    <div v-if="rolesOpenId === s.id" class="fixed inset-0 z-10" @click="closeRoles"></div>
-                    <div v-if="rolesOpenId === s.id" class="absolute z-20 mt-1 w-full">
+                    <div v-if="rolesOpenId === Number(s.id)" class="fixed inset-0 z-10" @click="closeRoles"></div>
+                    <div v-if="rolesOpenId === Number(s.id)" class="absolute z-20 mt-1 w-full">
                       <div :class="isDark ? 'bg-gray-800 border border-gray-700 text-gray-100' : 'bg-white border border-gray-300 text-gray-900'" class="rounded-md shadow-lg grid grid-cols-2">
                         <!-- 左列：顶级 -->
                         <div class="p-2 border-r" :class="isDark ? 'border-gray-700' : 'border-gray-200'">
@@ -1396,7 +1396,13 @@ function renumber() {
 }
 
 function toggleExpand(id: number) {
-  const next = expandedId.value === id ? null : id
+  const next = Number(expandedId.value) === Number(id) ? null : Number(id)
+  // 本地立即更新，确保不依赖插件响应也能展开
+  expandedId.value = next
+  // 展开时关闭成员选择弹层，避免遮罩影响点击
+  if (rolesOpenId.value !== null) {
+    closeRoles()
+  }
   registry.emit({ type: 'stage:expand', payload: { id: next } })
 }
 
@@ -1436,7 +1442,7 @@ function hasRole(s: any, key: string) {
   return Array.isArray(s.allowedRoles) && s.allowedRoles.includes(key)
 }
 function setRole(s: any, key: string, val: boolean) {
-  registry.emit({ type: 'members:setRole', payload: { stageId: s?.id, key, value: val } })
+  registry.emit({ type: 'members:setRole', payload: { stageId: Number(s?.id), key, value: val } })
 }
 
 /** UI 判定：该方是否“全体”（四辩位均选中） */
@@ -1446,22 +1452,22 @@ function sideAllUI(s: any, side: '正方'|'反方') {
 
 /** 切换某方“全体” */
 function toggleSideAll(s: any, side: '正方'|'反方', val: boolean) {
-  registry.emit({ type: 'members:toggleSideAll', payload: { stageId: s?.id, side, value: val } })
+  registry.emit({ type: 'members:toggleSideAll', payload: { stageId: Number(s?.id), side, value: val } })
 }
 
 /** 切换子辩位；选中任一子项时视为取消“全体”（UI通过 sideAllUI 控制禁用） */
 function toggleSub(s: any, side: '正方'|'反方', idx: number, val: boolean) {
-  registry.emit({ type: 'members:toggleSub', payload: { stageId: s?.id, side, idx, value: val } })
+  registry.emit({ type: 'members:toggleSub', payload: { stageId: Number(s?.id), side, idx, value: val } })
 }
 
 /** 一级“全体”：同时切换正反方为全体 */
 function toggleGlobalAll(s: any, val: boolean) {
-  registry.emit({ type: 'members:toggleGlobalAll', payload: { stageId: s?.id, value: val } })
+  registry.emit({ type: 'members:toggleGlobalAll', payload: { stageId: Number(s?.id), value: val } })
 }
 
 /** 观众：选中则自动勾选正反方全体；取消仅取消观众本身 */
 function toggleAudience(s: any, val: boolean) {
-  registry.emit({ type: 'members:toggleAudience', payload: { stageId: s?.id, value: val } })
+  registry.emit({ type: 'members:toggleAudience', payload: { stageId: Number(s?.id), value: val } })
 }
 
 /** 选择器弹层状态与标签生成（组件级，最小侵入式） */
@@ -1552,5 +1558,11 @@ onMounted(() => {
 // 监听编辑分段切换并广播
 watch(editTab, (tab) => {
   registry.emit({ type: 'form:editTabChanged', payload: { tab } })
+})
+// 监听展开变化，确保成员弹层关闭（双重保险）
+watch(expandedId, () => {
+  if (rolesOpenId.value !== null) {
+    closeRoles()
+  }
 })
 </script>

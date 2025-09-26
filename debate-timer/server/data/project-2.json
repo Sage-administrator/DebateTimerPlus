@@ -1,7 +1,7 @@
 {
   "id": 2,
   "name": "新赛事",
-  "updatedAt": "2025-09-25T06:02:30.692Z",
+  "updatedAt": "2025-09-26T09:24:43.393Z",
   "global": {
     "title": "圣贤教育辩论赛",
     "labels": {
@@ -240,19 +240,8 @@
       "description": "正方四辩进行总结陈词"
     },
     {
-      "id": 16,
-      "order": 16,
-      "name": "评委点评",
-      "duration": 0,
-      "type": "special",
-      "allowedRoles": [
-        "评委"
-      ],
-      "description": "评委点评环节"
-    },
-    {
       "id": 17,
-      "order": 17,
+      "order": 16,
       "name": "公布结果",
       "duration": 0,
       "type": "special",
@@ -263,7 +252,7 @@
     },
     {
       "id": 18,
-      "order": 18,
+      "order": 17,
       "name": "本场辩论比赛圆满结束",
       "duration": 0,
       "type": "special",

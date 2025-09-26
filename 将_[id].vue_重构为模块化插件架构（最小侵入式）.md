@@ -10,9 +10,11 @@
 
 - 原功能与交互保持
 
-- 主题修复：系统自适应 + 平滑过渡 + 对比度优化（theme-dark/theme-light）
+- Form 子系统事件化（uiChanged/editTabChanged + form:update）
 
 - Git 稳定标签迭代
+
+- 旧数据兼容：stage.id 字符串与数字统一处理（页面层 Number(...) 修复）
 
 ## Tech Stack
 
@@ -25,7 +27,7 @@
 
 ## Design
 
-Members 相关交互由页面派发事件（members:*）交由 MembersPlugin 处理；页面仅订阅 members:update 同步 rolesOpenId 与 rolesActiveSide。
+页面作为壳组件，仅通过事件总线与注册中心装配插件；此次修复通过 stop 点击与本地更新 expandedId 以及关闭成员弹层，避免拖拽和遮罩拦截。
 
 ## Plan
 
