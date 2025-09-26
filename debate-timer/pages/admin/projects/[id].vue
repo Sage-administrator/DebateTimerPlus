@@ -1426,10 +1426,7 @@ function hasRole(s: any, key: string) {
   return Array.isArray(s.allowedRoles) && s.allowedRoles.includes(key)
 }
 function setRole(s: any, key: string, val: boolean) {
-  if (!Array.isArray(s.allowedRoles)) s.allowedRoles = []
-  const i = s.allowedRoles.indexOf(key)
-  if (val && i === -1) s.allowedRoles.push(key)
-  if (!val && i !== -1) s.allowedRoles.splice(i, 1)
+  registry.emit({ type: 'members:setRole', payload: { stageId: s?.id, key, value: val } })
 }
 
 /** UI 判定：该方是否“全体”（四辩位均选中） */
@@ -1439,43 +1436,37 @@ function sideAllUI(s: any, side: '正方'|'反方') {
 
 /** 切换某方“全体” */
 function toggleSideAll(s: any, side: '正方'|'反方', val: boolean) {
-  for (let i = 0; i < SIDE_ROLES.length; i++) {
-    setRole(s, roleKey(side, i), val)
-  }
+  registry.emit({ type: 'members:toggleSideAll', payload: { stageId: s?.id, side, value: val } })
 }
 
 /** 切换子辩位；选中任一子项时视为取消“全体”（UI通过 sideAllUI 控制禁用） */
 function toggleSub(s: any, side: '正方'|'反方', idx: number, val: boolean) {
-  setRole(s, roleKey(side, idx), val)
+  registry.emit({ type: 'members:toggleSub', payload: { stageId: s?.id, side, idx, value: val } })
 }
 
 /** 一级“全体”：同时切换正反方为全体 */
 function toggleGlobalAll(s: any, val: boolean) {
-  // 正反双方全体
-  toggleSideAll(s, '正方', val)
-  toggleSideAll(s, '反方', val)
-  // 同步评委与观众
-  setRole(s, '评委', val)
-  setRole(s, '观众', val)
+  registry.emit({ type: 'members:toggleGlobalAll', payload: { stageId: s?.id, value: val } })
 }
 
 /** 观众：选中则自动勾选正反方全体；取消仅取消观众本身 */
 function toggleAudience(s: any, val: boolean) {
-  setRole(s, '观众', val)
-  if (val) {
-    toggleSideAll(s, '正方', true)
-    toggleSideAll(s, '反方', true)
-  }
+  registry.emit({ type: 'members:toggleAudience', payload: { stageId: s?.id, value: val } })
 }
 
 /** 选择器弹层状态与标签生成（组件级，最小侵入式） */
 const rolesOpenId = ref<number | null>(null)
 const rolesActiveSide = ref<'正方' | '反方' | null>(null)
 function openRoles(id: number, side?: '正方' | '反方') {
-  rolesOpenId.value = id
-  rolesActiveSide.value = side ?? rolesActiveSide.value ?? '正方'
+  registry.emit({ type: 'members:openRoles', payload: { stageId: id, side } })
 }
-function closeRoles() { rolesOpenId.value = null }
+function closeRoles() { registry.emit({ type: 'members:closeRoles' }) }
+
+// 订阅 Members 状态同步
+bus.on('members:update', (e: any) => {
+  if (typeof e?.payload?.rolesOpenId !== 'undefined') rolesOpenId.value = e.payload.rolesOpenId
+  if (typeof e?.payload?.rolesActiveSide !== 'undefined') rolesActiveSide.value = e.payload.rolesActiveSide
+})
 
 /** 已选标签显示：将 allowedRoles 映射为 “正方/一辩”等，并在 UI 层合并全体状态 */
 function selectedChips(s: any): string[] {

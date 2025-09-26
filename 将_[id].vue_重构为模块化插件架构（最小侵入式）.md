@@ -10,9 +10,9 @@
 
 - 原功能与交互保持
 
-- Git 语义化提交与稳定标签（v2025.09.26.1403-stable）
+- 主题修复：系统自适应 + 平滑过渡 + 对比度优化（theme-dark/theme-light）
 
-- 标签化快速回滚脚本与文档
+- Git 稳定标签迭代
 
 ## Tech Stack
 
@@ -25,7 +25,7 @@
 
 ## Design
 
-DataPlugin 已接管数据加载/保存/导入导出与环节 CRUD；ActionsPlugin 已接管主题与预览（actions:update/preview:* 事件）。页面仅派发/订阅事件，最小侵入。
+ActionsPlugin 扩展主题偏好（system/light/dark），监听 prefers-color-scheme，切换时为 documentElement 设置 theme-dark/theme-light 并注入过渡样式；页面根容器增加过渡与 bg/text 组合，减少黑白交替。
 
 ## Plan
 

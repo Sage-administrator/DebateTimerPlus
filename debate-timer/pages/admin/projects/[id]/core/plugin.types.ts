@@ -25,6 +25,14 @@ export type PluginEvent =
   | { type: "stage:moveUp"; payload: { index: number } }
   | { type: "stage:moveDown"; payload: { index: number } }
   | { type: "stage:renumber" }
+  | { type: "members:openRoles"; payload: { stageId: number; side?: "正方" | "反方" } }
+  | { type: "members:closeRoles" }
+  | { type: "members:setRole"; payload: { stageId: number; key: string; value: boolean } }
+  | { type: "members:toggleSideAll"; payload: { stageId: number; side: "正方" | "反方"; value: boolean } }
+  | { type: "members:toggleSub"; payload: { stageId: number; side: "正方" | "反方"; idx: number; value: boolean } }
+  | { type: "members:toggleGlobalAll"; payload: { stageId: number; value: boolean } }
+  | { type: "members:toggleAudience"; payload: { stageId: number; value: boolean } }
+  | { type: "members:update"; payload: { rolesOpenId?: number | null; rolesActiveSide?: "正方" | "反方" | null } }
   | { type: "custom"; payload: Record<string, any> }
 
 export interface EventBus {
